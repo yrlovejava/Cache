@@ -11,12 +11,55 @@
     <modules>
         <module>cache-core</module>
         <module>cache-api</module>
+        <module>cache-test</module>
     </modules>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!--============================== INTER ==============================-->
+        <test.version>0.0.1</test.version>
+        <heaven.version>0.1.117</heaven.version>
+
+        <!--============================== OTHER ==============================-->
+        <junit.version>4.12</junit.version>
+        <fastjson.version>1.2.70</fastjson.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!--============================== SELF ==============================-->
+            <dependency>
+                <groupId>com.github.houbb</groupId>
+                <artifactId>cache-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.houbb</groupId>
+                <artifactId>cache-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <!--============================== INTER ==============================-->
+            <dependency>
+                <groupId>com.github.houbb</groupId>
+                <artifactId>heaven</artifactId>
+                <version>${heaven.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.houbb</groupId>
+                <artifactId>test-core</artifactId>
+                <version>${test.version}</version>
+            </dependency>
+
+            <!--============================== OTHER ==============================-->
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>fastjson</artifactId>
+                <version>${fastjson.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
 </project>
