@@ -3,10 +3,13 @@ package com.github.houbb.cache.core.core;
 import com.github.houbb.cache.api.ICache;
 import com.github.houbb.cache.api.ICacheContext;
 import com.github.houbb.cache.api.ICacheEvict;
+import com.github.houbb.cache.api.ICacheExpire;
 import com.github.houbb.cache.core.support.evict.CacheEvictContext;
 import com.github.houbb.cache.core.exception.CacheRuntimeException;
+import com.github.houbb.cache.core.support.expire.CacheExpire;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -30,47 +33,69 @@ public class Cache<K,V> implements ICache<K,V> {
      * 驱除策略
      */
     private final ICacheEvict<K,V> cacheEvict;
+    /**
+     * 过期策略
+     */
+    private final ICacheExpire<K,V> cacheExpire;
 
     public Cache(ICacheContext<K, V> context) {
         this.map = context.map();
         this.sizeLimit = context.size();
         this.cacheEvict = context.cacheEvict();
+        this.cacheExpire = new CacheExpire<>(this);
     }
 
     @Override
     public ICache<K, V> expire(K key, long expireTime, TimeUnit timeUnit) {
-        // 先设置为不支持
-        throw new UnsupportedOperationException();
+        // 将过期改写为在当前时间+expireTime之后定时过期
+        long timestamp = System.currentTimeMillis() + timeUnit.toMillis(expireTime);
+        return this.expireAt(key,timestamp);
     }
 
     @Override
     public ICache<K, V> expireAt(K key, long timestamp) {
-        // 先设置为不支持
-        throw new UnsupportedOperationException();
+        this.cacheExpire.expire(key,timestamp);
+        return this;
     }
 
     @Override
     public int size() {
+        // 1.刷新所有过期信息，因为是惰性删除，所以就算过期了，如果没有使用，也不会删除
+        this.refreshExpireAllKeys();
+
         return map.size();
     }
 
     @Override
     public boolean isEmpty() {
+        // 1.刷新所有过期信息，因为是惰性删除，所以就算过期了，如果没有使用，也不会删除
+        this.refreshExpireAllKeys();
+
         return map.isEmpty();
     }
 
     @Override
     public boolean containsKey(Object key) {
+        // 1.刷新所有过期信息，因为是惰性删除，所以就算过期了，如果没有使用，也不会删除
+        this.refreshExpireAllKeys();
+
         return map.containsKey(key);
     }
 
     @Override
     public boolean containsValue(Object value) {
+        // 1.刷新所有过期信息，因为是惰性删除，所以就算过期了，如果没有使用，也不会删除
+        this.refreshExpireAllKeys();
+
         return map.containsValue(value);
     }
 
     @Override
     public V get(Object key) {
+        // 1.刷新所有过期信息，因为是惰性删除，所以就算过期了，如果没有使用，也不会删除
+        K genericKey = (K) key;
+        this.cacheExpire.refreshExpire(Collections.singletonList(genericKey));
+
         return map.get(key);
     }
 
@@ -115,16 +140,29 @@ public class Cache<K,V> implements ICache<K,V> {
 
     @Override
     public Set<K> keySet() {
+        this.refreshExpireAllKeys();
+
         return map.keySet();
     }
 
     @Override
     public Collection<V> values() {
+        this.refreshExpireAllKeys();
+
         return map.values();
     }
 
     @Override
     public Set<Entry<K, V>> entrySet() {
+        this.refreshExpireAllKeys();
+
         return map.entrySet();
+    }
+
+    /**
+     * 刷新懒过期的所有keys
+     */
+    private void refreshExpireAllKeys() {
+        this.cacheExpire.refreshExpire(map.keySet());
     }
 }
